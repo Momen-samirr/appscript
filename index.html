@@ -1,0 +1,1222 @@
+<!doctype html>
+<html dir="rtl" lang="ar">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EgooBus | بوابة السائقين</title>
+    <style>
+      :root {
+        --bg: #f3f6fb;
+        --card: #ffffff;
+        --primary: #1f4ea3;
+        --primary-dark: #183a7a;
+        --accent: #ff8a00;
+        --text: #1e2b45;
+        --muted: #6f7f9f;
+        --border: #dce3ef;
+        --success: #1c8f4c;
+        --error: #d93025;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+        color: var(--text);
+        background: linear-gradient(180deg, #edf2fc 0%, var(--bg) 100%);
+      }
+
+      .page {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 24px 16px 32px;
+      }
+
+      .hero {
+        text-align: center;
+        padding: 24px 16px 8px;
+      }
+
+      .brand {
+        display: inline-block;
+        font-weight: 800;
+        letter-spacing: 1px;
+        font-size: 34px;
+        color: var(--primary);
+      }
+
+      .hero h1 {
+        margin: 8px 0 6px;
+        font-size: 26px;
+      }
+
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+      }
+
+      .card {
+        width: 100%;
+        max-width: 540px;
+        margin: 18px auto;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 18px 42px rgba(17, 34, 68, 0.1);
+        padding: 22px 20px;
+      }
+
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 20px;
+      }
+
+      .card-subtitle {
+        margin: 0 0 16px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .field {
+        margin-top: 12px;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 7px;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .field input,
+      .field select,
+      .field textarea {
+        width: 100%;
+        min-height: 46px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        outline: none;
+        font-size: 15px;
+        padding: 10px 12px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        background: #fff;
+      }
+
+      .field textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+
+      .field input:focus,
+      .field select:focus,
+      .field textarea:focus {
+        border-color: #8da7df;
+        box-shadow: 0 0 0 4px rgba(44, 95, 179, 0.14);
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 12px;
+        min-height: 46px;
+        padding: 0 16px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.1s, opacity 0.2s, background 0.2s;
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .btn-primary {
+        width: 100%;
+        margin-top: 16px;
+        background: var(--primary);
+        color: #fff;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-dark);
+      }
+
+      .spinner {
+        display: none;
+        width: 30px;
+        height: 30px;
+        margin: 14px auto 0;
+        border: 3px solid #dfe8f9;
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .message {
+        margin-top: 14px;
+        padding: 11px 12px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        display: none;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .message.success {
+        display: block;
+        color: #0f6b39;
+        background: #e9f8ef;
+        border-color: #bae2ca;
+      }
+
+      .message.error {
+        display: block;
+        color: #8c1d17;
+        background: #fdecea;
+        border-color: #f2c5bf;
+      }
+
+      .results-card {
+        display: none;
+        margin-top: 20px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 12px 30px rgba(17, 34, 68, 0.08);
+        padding: 18px;
+      }
+
+      .results-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .results-title {
+        margin: 0;
+        font-size: 19px;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        border: 1px solid #d3def3;
+        background: #edf3ff;
+        color: #2a4e93;
+      }
+
+      .actions-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      #downloadImgBtn {
+        display: none;
+        background: var(--accent);
+        color: #fff;
+      }
+
+      #downloadImgBtn:hover {
+        background: #e37600;
+      }
+
+      .table-container {
+        overflow: auto;
+        max-height: 62vh;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+      }
+
+      table {
+        width: 100%;
+        min-width: 720px;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border: 1px solid #e8edf5;
+        padding: 10px;
+        text-align: center;
+        white-space: nowrap;
+        font-size: 14px;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        font-weight: 700;
+      }
+
+      .swap-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 16px;
+      }
+
+      .swap-grid .field.full {
+        grid-column: 1 / -1;
+      }
+
+      .sub-card {
+        margin-top: 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        background: #fafcff;
+      }
+
+      .sub-card h4 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+
+      .shift-select-hint {
+        margin-top: 5px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .swap-shifts-box {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        max-height: 240px;
+        overflow: auto;
+      }
+
+      .swap-shifts-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 9px;
+        border-bottom: 1px solid var(--border);
+        background: #f8fbff;
+        font-size: 12px;
+      }
+
+      .swap-shifts-toolbar label {
+        cursor: pointer;
+      }
+
+      .swap-shifts-list {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .swap-shift-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-bottom: 1px solid #eef2f8;
+        cursor: pointer;
+      }
+
+      .swap-shift-row:last-child {
+        border-bottom: none;
+      }
+
+      .swap-shift-row:hover {
+        background: #f6f9ff;
+      }
+
+      .swap-shift-checkbox {
+        width: 13px;
+        height: 13px;
+        cursor: pointer;
+      }
+
+      .swap-shift-label {
+        flex: 1;
+        font-size: 13px;
+        line-height: 1.3;
+      }
+
+      .inline-link-btn {
+        border: none;
+        background: transparent;
+        color: var(--primary);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 0;
+      }
+
+      .inline-link-btn:hover {
+        text-decoration: underline;
+      }
+
+      #swapStatus {
+        margin-top: 10px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      #swapStatus.success {
+        color: var(--success);
+      }
+
+      #swapStatus.error {
+        color: var(--error);
+      }
+
+      .small-table table {
+        min-width: 680px;
+      }
+
+      .admin-panel {
+        display: none;
+      }
+
+      .admin-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .admin-toolbar .field {
+        margin-top: 0;
+        min-width: 220px;
+      }
+
+      #adminStatus {
+        margin-top: 8px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      #adminStatus.success {
+        color: var(--success);
+      }
+
+      #adminStatus.error {
+        color: var(--error);
+      }
+
+      .admin-note-input {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 8px;
+      }
+
+      .admin-action-btn {
+        min-height: 34px;
+        border-radius: 8px;
+        font-size: 13px;
+        padding: 0 10px;
+        color: #fff;
+      }
+
+      .admin-approve-btn {
+        background: #1b6fd8;
+      }
+
+      .admin-reject-btn {
+        background: #c53a3a;
+      }
+
+      @media (max-width: 860px) {
+        .swap-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .swap-shifts-box {
+          max-height: 220px;
+        }
+      }
+
+      @media (max-width: 700px) {
+        .brand {
+          font-size: 29px;
+        }
+        .hero h1 {
+          font-size: 22px;
+        }
+        .card {
+          padding: 18px 14px;
+        }
+
+        .swap-shift-row {
+          padding: 9px 10px;
+        }
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="brand">EgooBus</div>
+        <h1>بوابة متابعة الشفتات للسائقين</h1>
+        <p>ادخل بياناتك الصحيحة لاستخراج الشفتات الخاصة بك بطريقة واضحة ومنظمة.</p>
+      </section>
+
+      <section class="card" id="loginCard">
+        <h2>تسجيل دخول السائق</h2>
+        <p class="card-subtitle">اختر الشركة أولاً ثم أدخل رقم السائق وكلمة المرور.</p>
+
+        <div class="field">
+          <label for="companySelect">الشركة</label>
+          <select id="companySelect" disabled>
+            <option value="">جاري تحميل الشركات...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="driverId">رقم السائق</label>
+          <input type="text" id="driverId" placeholder="مثال: 1123327546" autocomplete="username" />
+        </div>
+
+        <div class="field">
+          <label for="password">كلمة المرور</label>
+          <input type="password" id="password" placeholder="أدخل كلمة المرور" autocomplete="current-password" />
+        </div>
+
+        <button class="btn btn-primary" id="loginBtn" onclick="login()">دخول</button>
+        <div class="spinner" id="spinner"></div>
+        <div class="message" id="result"></div>
+      </section>
+
+      <section class="results-card" id="resultsCard">
+        <div class="results-header">
+          <h3 class="results-title">جدول الشفتات</h3>
+          <div class="meta">
+            <span class="badge" id="selectedCompanyBadge">الشركة: -</span>
+            <span class="badge" id="sheetBadge">الشيت: -</span>
+            <span class="badge" id="driverBadge">السائق: -</span>
+          </div>
+        </div>
+
+        <div class="actions-bar">
+          <button class="btn" id="downloadImgBtn">تحميل الجدول PNG</button>
+        </div>
+
+        <div class="table-container" id="tableContainer"></div>
+
+        <div class="sub-card">
+          <h4>طلب تبديل شيفت</h4>
+          <div class="swap-grid">
+            <div class="field">
+              <label for="swapPartnerSelect">السائق البديل</label>
+              <select id="swapPartnerSelect" onchange="onSwapPartnerChange()">
+                <option value="">اختر السائق البديل</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="swapPartnerPhone">رقم الهاتف</label>
+              <input id="swapPartnerPhone" type="text" readonly placeholder="يظهر تلقائيًا" />
+            </div>
+            <div class="field full">
+              <label>الشيفت المراد تبديله</label>
+              <div class="swap-shifts-box">
+                <div class="swap-shifts-toolbar">
+                  <input
+                    id="selectAllSwapShifts"
+                    class="swap-shift-checkbox"
+                    type="checkbox"
+                    onchange="toggleAllSwapShifts(this.checked)"
+                  />
+                  <label for="selectAllSwapShifts">تحديد كل الشيفتات</label>
+                </div>
+                <div id="swapShiftList" class="swap-shifts-list"></div>
+              </div>
+              <div class="shift-select-hint">
+                <span id="selectedShiftsCount">تم اختيار 0 شيفت</span>
+                -
+                <button type="button" class="inline-link-btn" onclick="clearSelectedShifts()">
+                  مسح التحديد
+                </button>
+              </div>
+            </div>
+            <div class="field full">
+              <label for="swapNote">ملاحظة (اختياري)</label>
+              <textarea id="swapNote" placeholder="اكتب أي ملاحظة للمسؤول..."></textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="swapSubmitBtn" onclick="submitSwapRequest()">
+            إرسال طلب التبديل
+          </button>
+          <div id="swapStatus"></div>
+        </div>
+
+        <div class="sub-card small-table">
+          <h4>حالة طلبات التبديل الخاصة بي</h4>
+          <div class="table-container" id="swapRequestsContainer"></div>
+        </div>
+
+        <div class="sub-card small-table admin-panel" id="adminPanel">
+          <h4>لوحة المسؤول - الطلبات المعلقة</h4>
+          <div class="admin-toolbar">
+            <div class="field">
+              <label for="adminCompanyFilter">تصفية حسب الشركة</label>
+              <select id="adminCompanyFilter" onchange="loadAdminPendingRequests()">
+                <option value="">كل الشركات</option>
+              </select>
+            </div>
+            <button class="btn" id="refreshAdminBtn" onclick="loadAdminPendingRequests()">
+              تحديث الطلبات
+            </button>
+          </div>
+          <div id="adminStatus"></div>
+          <div class="table-container" id="adminRequestsContainer"></div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      var currentFileName = "";
+      var currentSheetName = "";
+      var currentCompanyName = "";
+      var loggedDriverId = "";
+      var loggedPassword = "";
+      var currentShiftEntries = [];
+      var partnersMap = {};
+      var adminAccess = {
+        isAdmin: false,
+        allCompanies: false,
+        allowedCompanies: [],
+        companyOptions: [],
+        email: "",
+      };
+
+      document.addEventListener("DOMContentLoaded", function () {
+        loadCompanies();
+      });
+
+      function safeParseJson(response) {
+        if (typeof response === "string") return JSON.parse(response);
+        return response;
+      }
+
+      function showResultMessage(text, type) {
+        var resEl = document.getElementById("result");
+        resEl.innerHTML = text;
+        resEl.className = "message " + type;
+      }
+
+      function clearResultMessage() {
+        var resEl = document.getElementById("result");
+        resEl.innerHTML = "";
+        resEl.className = "message";
+      }
+
+      function setSwapStatus(text, type) {
+        var el = document.getElementById("swapStatus");
+        el.textContent = text || "";
+        el.className = type ? type : "";
+      }
+
+      function setAdminStatus(text, type) {
+        var el = document.getElementById("adminStatus");
+        el.textContent = text || "";
+        el.className = type ? type : "";
+      }
+
+      function loadCompanies() {
+        var companySelect = document.getElementById("companySelect");
+        var loginBtn = document.getElementById("loginBtn");
+        companySelect.disabled = true;
+        loginBtn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (companies) {
+            var list = Array.isArray(companies) ? companies : [];
+            companySelect.innerHTML = '<option value="">اختر الشركة</option>';
+            if (!list.length) {
+              companySelect.innerHTML = '<option value="">لا توجد شركات متاحة الآن</option>';
+              showResultMessage("❌ لا يمكن تحميل قائمة الشركات الآن.", "error");
+              return;
+            }
+            list.forEach(function (companyName) {
+              var option = document.createElement("option");
+              option.value = companyName;
+              option.textContent = companyName;
+              companySelect.appendChild(option);
+            });
+            companySelect.disabled = false;
+            loginBtn.disabled = false;
+          })
+          .withFailureHandler(function (error) {
+            companySelect.innerHTML = '<option value="">فشل تحميل الشركات</option>';
+            showResultMessage("❌ حدث خطأ أثناء تحميل الشركات: " + error.message, "error");
+          })
+          .getCompanies();
+      }
+
+      function login() {
+        var driverId = document.getElementById("driverId").value.trim();
+        var password = document.getElementById("password").value.trim();
+        var companyName = document.getElementById("companySelect").value.trim();
+        var spinner = document.getElementById("spinner");
+        var loginBtn = document.getElementById("loginBtn");
+        var tableContainer = document.getElementById("tableContainer");
+        var resultsCard = document.getElementById("resultsCard");
+
+        clearResultMessage();
+        setSwapStatus("", "");
+        setAdminStatus("", "");
+        hideAdminPanel();
+        resultsCard.style.display = "none";
+        tableContainer.innerHTML = "";
+        document.getElementById("swapRequestsContainer").innerHTML = "";
+        document.getElementById("adminRequestsContainer").innerHTML = "";
+
+        if (!companyName) {
+          showResultMessage("❌ يرجى اختيار الشركة أولاً.", "error");
+          return;
+        }
+        if (!driverId || !password) {
+          showResultMessage("❌ يرجى إدخال رقم السائق وكلمة المرور.", "error");
+          return;
+        }
+
+        spinner.style.display = "block";
+        loginBtn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            spinner.style.display = "none";
+            loginBtn.disabled = false;
+            var parsed = safeParseJson(response);
+            if (!parsed.success) {
+              showResultMessage("❌ " + parsed.message, "error");
+              return;
+            }
+
+            currentFileName = parsed.fileName;
+            currentSheetName = parsed.sheetName;
+            currentCompanyName = parsed.companyName || companyName;
+            loggedDriverId = parsed.driverId || driverId;
+            loggedPassword = password;
+            currentShiftEntries = Array.isArray(parsed.shiftEntries) ? parsed.shiftEntries : [];
+
+            document.getElementById("selectedCompanyBadge").textContent = "الشركة: " + currentCompanyName;
+            document.getElementById("sheetBadge").textContent = "الشيت: " + currentSheetName;
+            document.getElementById("driverBadge").textContent =
+              "السائق: " + (parsed.driverName || loggedDriverId);
+
+            renderTable(parsed);
+            populateShiftSelect(currentShiftEntries);
+            resultsCard.style.display = "block";
+            document.getElementById("downloadImgBtn").style.display = "inline-flex";
+
+            showResultMessage(
+              "✅ تم تسجيل الدخول بنجاح. تم جلب الشفتات من " +
+                parsed.sheetName +
+                " (" +
+                parsed.fileName +
+                ").",
+              "success",
+            );
+
+            loadEligiblePartners();
+            loadMySwapRequests();
+            loadAdminContextAndPanel();
+            bindDownloadButton();
+          })
+          .withFailureHandler(function (error) {
+            spinner.style.display = "none";
+            loginBtn.disabled = false;
+            showResultMessage("❌ حدث خطأ: " + error.message, "error");
+          })
+          .checkLogin(driverId, password, companyName);
+      }
+
+      function bindDownloadButton() {
+        var downloadImgBtn = document.getElementById("downloadImgBtn");
+        downloadImgBtn.onclick = function () {
+          var tableElement = document.getElementById("tableContainer").cloneNode(true);
+          tableElement.style.maxHeight = "none";
+          tableElement.style.overflow = "visible";
+          tableElement.style.width = "fit-content";
+          tableElement.style.position = "absolute";
+          tableElement.style.left = "-9999px";
+          document.body.appendChild(tableElement);
+
+          html2canvas(tableElement, { scale: 2 }).then(function (canvas) {
+            var imgData = canvas.toDataURL("image/png");
+            var link = document.createElement("a");
+            link.href = imgData;
+            link.download = currentFileName + "_" + currentSheetName + ".png";
+            link.click();
+            document.body.removeChild(tableElement);
+          });
+        };
+      }
+
+      function renderTable(res) {
+        var html = "<table>";
+        res.data.forEach(function (row, i) {
+          html += "<tr>";
+          row.forEach(function (cell, j) {
+            var bg = res.backgrounds[i][j];
+            var color = res.fontColors[i][j];
+            var weight = res.fontWeights[i][j];
+            var style = res.fontStyles[i][j];
+            var align = res.horizontalAlignments[i][j];
+            var tag = i === 0 ? "th" : "td";
+            html +=
+              "<" +
+              tag +
+              ' style="background:' +
+              bg +
+              ";color:" +
+              color +
+              ";font-weight:" +
+              weight +
+              ";font-style:" +
+              style +
+              ";text-align:" +
+              align +
+              ';">' +
+              (cell !== undefined ? cell : "") +
+              "</" +
+              tag +
+              ">";
+          });
+          html += "</tr>";
+        });
+        html += "</table>";
+        document.getElementById("tableContainer").innerHTML = html;
+      }
+
+      function populateShiftSelect(shiftEntries) {
+        var list = document.getElementById("swapShiftList");
+        var html = "";
+        shiftEntries.forEach(function (entry) {
+          var shiftKey = entry.shiftKey || "";
+          var shiftLabel = entry.shiftLabel || shiftKey;
+          html +=
+            '<label class="swap-shift-row">' +
+            '<input class="swap-shift-checkbox js-swap-shift-checkbox" type="checkbox" value="' +
+            escapeHtml(shiftKey) +
+            '" onchange="updateSelectedShiftsSummary()" />' +
+            '<span class="swap-shift-label">' +
+            escapeHtml(shiftLabel) +
+            "</span>" +
+            "</label>";
+        });
+        list.innerHTML = html;
+        document.getElementById("selectAllSwapShifts").checked = false;
+        updateSelectedShiftsSummary();
+      }
+
+      function getSelectedShiftKeys() {
+        var checkboxes = document.querySelectorAll(".js-swap-shift-checkbox");
+        var selected = [];
+        for (var i = 0; i < checkboxes.length; i++) {
+          if (checkboxes[i].checked) {
+            selected.push(checkboxes[i].value);
+          }
+        }
+        return selected;
+      }
+
+      function updateSelectedShiftsSummary() {
+        var countEl = document.getElementById("selectedShiftsCount");
+        var selectedCount = getSelectedShiftKeys().length;
+        countEl.textContent = "تم اختيار " + selectedCount + " شيفت";
+        var allBox = document.getElementById("selectAllSwapShifts");
+        var total = document.querySelectorAll(".js-swap-shift-checkbox").length;
+        allBox.checked = total > 0 && selectedCount === total;
+      }
+
+      function toggleAllSwapShifts(checked) {
+        var checkboxes = document.querySelectorAll(".js-swap-shift-checkbox");
+        for (var i = 0; i < checkboxes.length; i++) {
+          checkboxes[i].checked = checked;
+        }
+        updateSelectedShiftsSummary();
+      }
+
+      function clearSelectedShifts() {
+        var checkboxes = document.querySelectorAll(".js-swap-shift-checkbox");
+        for (var i = 0; i < checkboxes.length; i++) {
+          checkboxes[i].checked = false;
+        }
+        document.getElementById("selectAllSwapShifts").checked = false;
+        updateSelectedShiftsSummary();
+      }
+
+      function loadEligiblePartners() {
+        var partnerSelect = document.getElementById("swapPartnerSelect");
+        partnerSelect.innerHTML = '<option value="">جاري تحميل السائقين...</option>';
+        partnerSelect.disabled = true;
+        partnersMap = {};
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            var parsed = safeParseJson(response);
+            partnerSelect.innerHTML = '<option value="">اختر السائق البديل</option>';
+            if (!parsed.success) {
+              setSwapStatus("❌ " + parsed.message, "error");
+              return;
+            }
+            var partners = Array.isArray(parsed.partners) ? parsed.partners : [];
+            if (!partners.length) {
+              partnerSelect.innerHTML = '<option value="">لا يوجد سائقون متاحون للتبديل</option>';
+              return;
+            }
+            partners.forEach(function (partner) {
+              partnersMap[partner.driverId] = partner;
+              var option = document.createElement("option");
+              option.value = partner.driverId;
+              option.textContent = (partner.driverName ? partner.driverName + " - " : "") + partner.driverId;
+              partnerSelect.appendChild(option);
+            });
+            partnerSelect.disabled = false;
+          })
+          .withFailureHandler(function (error) {
+            partnerSelect.innerHTML = '<option value="">تعذر تحميل السائقين</option>';
+            setSwapStatus("❌ خطأ في تحميل السائقين: " + error.message, "error");
+          })
+          .getEligiblePartners(currentCompanyName, loggedDriverId, loggedPassword);
+      }
+
+      function onSwapPartnerChange() {
+        var selectedId = document.getElementById("swapPartnerSelect").value;
+        var phoneInput = document.getElementById("swapPartnerPhone");
+        var partner = partnersMap[selectedId];
+        phoneInput.value = partner && partner.phone ? partner.phone : "";
+      }
+
+      function submitSwapRequest() {
+        var partnerId = document.getElementById("swapPartnerSelect").value.trim();
+        var shiftKeys = getSelectedShiftKeys();
+        var note = document.getElementById("swapNote").value.trim();
+        var submitBtn = document.getElementById("swapSubmitBtn");
+
+        if (!loggedDriverId || !loggedPassword || !currentCompanyName) {
+          setSwapStatus("❌ يجب تسجيل الدخول أولاً.", "error");
+          return;
+        }
+        if (!partnerId) {
+          setSwapStatus("❌ اختر السائق البديل.", "error");
+          return;
+        }
+        if (!shiftKeys.length) {
+          setSwapStatus("❌ اختر شيفت واحد على الأقل للتبديل.", "error");
+          return;
+        }
+
+        setSwapStatus("⏳ جاري إرسال الطلب...", "");
+        submitBtn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            submitBtn.disabled = false;
+            var parsed = safeParseJson(response);
+            if (!parsed.success) {
+              setSwapStatus("❌ " + parsed.message, "error");
+              return;
+            }
+            setSwapStatus("✅ " + parsed.message, "success");
+            document.getElementById("swapNote").value = "";
+            clearSelectedShifts();
+            loadMySwapRequests();
+          })
+          .withFailureHandler(function (error) {
+            submitBtn.disabled = false;
+            setSwapStatus("❌ فشل إرسال الطلب: " + error.message, "error");
+          })
+          .requestSwap(
+            currentCompanyName,
+            loggedDriverId,
+            loggedPassword,
+            partnerId,
+            shiftKeys,
+            note,
+          );
+      }
+
+      function loadMySwapRequests() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            var parsed = safeParseJson(response);
+            if (!parsed.success) {
+              renderSwapRequests([]);
+              return;
+            }
+            renderSwapRequests(Array.isArray(parsed.requests) ? parsed.requests : []);
+          })
+          .withFailureHandler(function () {
+            renderSwapRequests([]);
+          })
+          .listDriverSwapRequests(currentCompanyName, loggedDriverId, loggedPassword);
+      }
+
+      function hideAdminPanel() {
+        adminAccess = {
+          isAdmin: false,
+          allCompanies: false,
+          allowedCompanies: [],
+          companyOptions: [],
+          email: "",
+        };
+        document.getElementById("adminPanel").style.display = "none";
+        document.getElementById("adminRequestsContainer").innerHTML = "";
+      }
+
+      function loadAdminContextAndPanel() {
+        google.script.run
+          .withSuccessHandler(function (response) {
+            var parsed = safeParseJson(response);
+            if (!parsed.success || !parsed.isAdmin) {
+              hideAdminPanel();
+              return;
+            }
+            adminAccess = {
+              isAdmin: true,
+              allCompanies: !!parsed.allCompanies,
+              allowedCompanies: Array.isArray(parsed.allowedCompanies)
+                ? parsed.allowedCompanies
+                : [],
+              companyOptions: Array.isArray(parsed.companyOptions)
+                ? parsed.companyOptions
+                : [],
+              email: parsed.email || "",
+            };
+            document.getElementById("adminPanel").style.display = "block";
+            populateAdminCompanyFilter();
+            setAdminStatus("تم تسجيل الدخول كمسؤول: " + adminAccess.email, "success");
+            loadAdminPendingRequests();
+          })
+          .withFailureHandler(function (error) {
+            hideAdminPanel();
+            setAdminStatus("❌ خطأ في تحميل صلاحيات المسؤول: " + error.message, "error");
+          })
+          .getAdminAccessContext();
+      }
+
+      function populateAdminCompanyFilter() {
+        var select = document.getElementById("adminCompanyFilter");
+        var previous = select.value;
+        var options = adminAccess.companyOptions || [];
+        var html = '<option value="">كل الشركات</option>';
+        options.forEach(function (company) {
+          html +=
+            '<option value="' +
+            escapeHtml(company) +
+            '">' +
+            escapeHtml(company) +
+            "</option>";
+        });
+        select.innerHTML = html;
+        if (previous && options.indexOf(previous) !== -1) {
+          select.value = previous;
+        } else {
+          select.value = "";
+        }
+      }
+
+      function loadAdminPendingRequests() {
+        if (!adminAccess.isAdmin) return;
+        var filterCompany = document.getElementById("adminCompanyFilter").value.trim();
+        setAdminStatus("⏳ جاري تحميل الطلبات المعلقة...", "");
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            var parsed = safeParseJson(response);
+            if (!parsed.success) {
+              renderAdminPendingRequests([]);
+              setAdminStatus("❌ " + parsed.message, "error");
+              return;
+            }
+            renderAdminPendingRequests(Array.isArray(parsed.pending) ? parsed.pending : []);
+            setAdminStatus("تم تحميل الطلبات المعلقة بنجاح.", "success");
+          })
+          .withFailureHandler(function (error) {
+            renderAdminPendingRequests([]);
+            setAdminStatus("❌ خطأ في تحميل الطلبات: " + error.message, "error");
+          })
+          .listPendingSwapRequestsForAdmin(filterCompany);
+      }
+
+      function renderAdminPendingRequests(requests) {
+        var container = document.getElementById("adminRequestsContainer");
+        if (!requests.length) {
+          container.innerHTML = "<div style='padding:10px'>لا توجد طلبات معلقة حاليًا.</div>";
+          return;
+        }
+
+        var html =
+          "<table><tr>" +
+          "<th>رقم الطلب</th>" +
+          "<th>الشركة</th>" +
+          "<th>السائق الطالب</th>" +
+          "<th>السائق البديل</th>" +
+          "<th>عدد الشيفتات</th>" +
+          "<th>الملخص</th>" +
+          "<th>ملاحظة القرار</th>" +
+          "<th>إجراءات</th>" +
+          "</tr>";
+
+        requests.forEach(function (req) {
+          var requestId = req.requestId || "";
+          var companyKey = req.companyKey || "";
+          html +=
+            '<tr data-request-id="' +
+            escapeHtml(requestId) +
+            '" data-company-key="' +
+            escapeHtml(companyKey) +
+            '">';
+          html += "<td>" + escapeHtml(requestId) + "</td>";
+          html += "<td>" + escapeHtml(companyKey) + "</td>";
+          html += "<td>" + escapeHtml(req.requesterDriverId || "") + "</td>";
+          html += "<td>" + escapeHtml(req.partnerDriverId || "") + "</td>";
+          html += "<td>" + escapeHtml(req.shiftCount || 0) + "</td>";
+          html += "<td>" + escapeHtml(req.shiftLabel || req.shiftKey || "") + "</td>";
+          html += '<td><input class="admin-note-input" type="text" placeholder="ملاحظة اختيارية" /></td>';
+          html +=
+            '<td>' +
+            '<button class="btn admin-action-btn admin-approve-btn">قبول</button> ' +
+            '<button class="btn admin-action-btn admin-reject-btn">رفض</button>' +
+            "</td>";
+          html += "</tr>";
+        });
+
+        html += "</table>";
+        container.innerHTML = html;
+
+        var approveButtons = container.querySelectorAll(".admin-approve-btn");
+        for (var i = 0; i < approveButtons.length; i++) {
+          approveButtons[i].addEventListener("click", function (event) {
+            handleAdminDecision(event, true);
+          });
+        }
+        var rejectButtons = container.querySelectorAll(".admin-reject-btn");
+        for (var j = 0; j < rejectButtons.length; j++) {
+          rejectButtons[j].addEventListener("click", function (event) {
+            handleAdminDecision(event, false);
+          });
+        }
+      }
+
+      function handleAdminDecision(event, approve) {
+        var button = event.currentTarget;
+        var row = button.closest("tr");
+        if (!row) return;
+
+        var requestId = (row.getAttribute("data-request-id") || "").trim();
+        var companyKey = (row.getAttribute("data-company-key") || "").trim();
+        var noteInput = row.querySelector(".admin-note-input");
+        var note = noteInput ? noteInput.value.trim() : "";
+
+        if (!requestId || !companyKey) {
+          setAdminStatus("❌ بيانات الطلب غير مكتملة.", "error");
+          return;
+        }
+
+        setAdminStatus("⏳ جاري تنفيذ القرار...", "");
+        button.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            button.disabled = false;
+            var parsed = safeParseJson(response);
+            if (!parsed.success) {
+              setAdminStatus("❌ " + parsed.message, "error");
+              return;
+            }
+            setAdminStatus("✅ " + parsed.message, "success");
+            loadAdminPendingRequests();
+            loadMySwapRequests();
+          })
+          .withFailureHandler(function (error) {
+            button.disabled = false;
+            setAdminStatus("❌ فشل تنفيذ القرار: " + error.message, "error");
+          })
+          .resolveSwapRequest(requestId, companyKey, approve, note);
+      }
+
+      function renderSwapRequests(requests) {
+        var container = document.getElementById("swapRequestsContainer");
+        if (!requests.length) {
+          container.innerHTML = "<div style='padding:10px'>لا توجد طلبات تبديل حتى الآن.</div>";
+          return;
+        }
+
+        var html =
+          "<table><tr>" +
+          "<th>رقم الطلب</th>" +
+          "<th>السائق البديل</th>" +
+          "<th>عدد الشيفتات</th>" +
+          "<th>ملخص الشيفتات</th>" +
+          "<th>الحالة</th>" +
+          "<th>تاريخ الإنشاء</th>" +
+          "<th>تاريخ المعالجة</th>" +
+          "</tr>";
+
+        requests.forEach(function (req) {
+          html += "<tr>";
+          html += "<td>" + (req.requestId || "") + "</td>";
+          html += "<td>" + (req.partnerDriverId || "") + "</td>";
+          html += "<td>" + (req.shiftCount || 0) + "</td>";
+          html += "<td>" + (req.shiftLabel || req.shiftKey || "") + "</td>";
+          html += "<td>" + (req.status || "") + "</td>";
+          html += "<td>" + formatDateSafe(req.createdAt) + "</td>";
+          html += "<td>" + formatDateSafe(req.resolvedAt) + "</td>";
+          html += "</tr>";
+        });
+
+        html += "</table>";
+        container.innerHTML = html;
+      }
+
+      function formatDateSafe(value) {
+        if (!value) return "-";
+        try {
+          return new Date(value).toLocaleString("ar-EG");
+        } catch (e) {
+          return String(value);
+        }
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+    </script>
+  </body>
+</html>
