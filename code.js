@@ -13,14 +13,30 @@ var CONFIG = {
   STATUS_PENDING: "Pending",
   STATUS_APPROVED: "Approved",
   STATUS_REJECTED: "Rejected",
-  PHONE_HEADER_CANDIDATES: ["رقم الهاتف", "الهاتف", "تليفون", "موبايل", "phone"],
-  DRIVER_NAME_HEADER_CANDIDATES: ["اسم السائق", "اسم الكابتن", "الاسم", "driver"],
+  PHONE_HEADER_CANDIDATES: [
+    "رقم الهاتف",
+    "الهاتف",
+    "تليفون",
+    "موبايل",
+    "phone",
+  ],
+  DRIVER_NAME_HEADER_CANDIDATES: [
+    "اسم السائق",
+    "اسم الكابتن",
+    "الاسم",
+    "driver",
+  ],
   DATE_HEADER_CANDIDATES: ["التاريخ", "تاريخ", "date"],
   TIME_HEADER_CANDIDATES: ["الوقت", "وقت", "موعد", "النقطة", "time"],
-  TRIP_HEADER_CANDIDATES: ["الرحلة", "رحلة", "trip"],
+  TRIP_HEADER_CANDIDATES: ["الرحلة", "الرحله", "رحلة", "رحله", "trip"],
 };
 
-var ELIGIBLE_PAIRS_HEADERS = ["CompanyKey", "DriverA_Id", "DriverB_Id", "Active"];
+var ELIGIBLE_PAIRS_HEADERS = [
+  "CompanyKey",
+  "DriverA_Id",
+  "DriverB_Id",
+  "Active",
+];
 var SWAP_REQUESTS_HEADERS = [
   "RequestId",
   "CompanyKey",
@@ -52,15 +68,28 @@ function getCompanies() {
   return Object.keys(CONFIG.COMPANY_SHEETS);
 }
 
-function checkLogin(driverId, password, companyName) {
+function checkLogin(driverId, password, companyName, queryDate) {
   var normalizedDriverId = normalizeValue(driverId);
   var normalizedPassword = normalizeValue(password);
+  var normalizedQueryDate = normalizeValue(queryDate);
 
   if (!normalizedDriverId) {
-    return JSON.stringify({ success: false, message: "يرجى إدخال رقم السائق." });
+    return JSON.stringify({
+      success: false,
+      message: "يرجى إدخال رقم السائق.",
+    });
   }
   if (!normalizedPassword) {
-    return JSON.stringify({ success: false, message: "يرجى إدخال كلمة المرور." });
+    return JSON.stringify({
+      success: false,
+      message: "يرجى إدخال كلمة المرور.",
+    });
+  }
+  if (!normalizedQueryDate) {
+    return JSON.stringify({
+      success: false,
+      message: "يرجى اختيار التاريخ المطلوب.",
+    });
   }
 
   try {
@@ -70,12 +99,25 @@ function checkLogin(driverId, password, companyName) {
       return JSON.stringify({ success: false, message: loaded.message });
     }
 
-    var matches = filterDriverRows(loaded, normalizedDriverId, normalizedPassword);
+    var matches = filterDriverRows(
+      loaded,
+      normalizedDriverId,
+      normalizedPassword,
+    );
     if (!matches.length) {
       return JSON.stringify({
         success: false,
         message:
           "رقم السائق أو كلمة المرور غير صحيحة للشركة المختارة. يرجى التحقق والمحاولة مرة أخرى.",
+      });
+    }
+
+    var scriptTimeZone = Session.getScriptTimeZone();
+    var selectedDayKey = parseQueryDateToDayKey(normalizedQueryDate);
+    if (!selectedDayKey) {
+      return JSON.stringify({
+        success: false,
+        message: "التاريخ المختار غير صالح.",
       });
     }
 
@@ -88,24 +130,48 @@ function checkLogin(driverId, password, companyName) {
     var fontStyles = [loaded.headerStyle.fontStyles];
     var horizontalAlignments = [loaded.headerStyle.horizontalAlignments];
     var shiftEntries = [];
+    var selectedDayCount = 0;
+    var cumulativeCount = 0;
+    var cumulativeFromDayKey = "";
+    var cumulativeToDayKey = selectedDayKey;
 
     for (var i = 0; i < sorted.length; i++) {
       var item = sorted[i];
-      var rowCopy = item.row.slice();
-      formattedRows.push(formatRowForDisplay(rowCopy, headers));
-      backgrounds.push(item.background.slice());
-      fontColors.push(item.fontColor.slice());
-      fontWeights.push(item.fontWeight.slice());
-      fontStyles.push(item.fontStyle.slice());
-      horizontalAlignments.push(item.horizontalAlignment.slice());
-      shiftEntries.push({
-        shiftKey: item.shiftKey,
-        shiftLabel: item.shiftLabel,
-        rowIndex: item.rowIndex,
-      });
+      var effectiveDayKey = getEffectiveDayKey(
+        item.row,
+        loaded.columns,
+        scriptTimeZone,
+      );
+      if (!effectiveDayKey) {
+        continue;
+      }
+      if (effectiveDayKey <= selectedDayKey) {
+        cumulativeCount++;
+        if (!cumulativeFromDayKey || effectiveDayKey < cumulativeFromDayKey) {
+          cumulativeFromDayKey = effectiveDayKey;
+        }
+      }
+      if (effectiveDayKey === selectedDayKey) {
+        selectedDayCount++;
+        var rowCopy = item.row.slice();
+        formattedRows.push(formatRowForDisplay(rowCopy, headers));
+        backgrounds.push(item.background.slice());
+        fontColors.push(item.fontColor.slice());
+        fontWeights.push(item.fontWeight.slice());
+        fontStyles.push(item.fontStyle.slice());
+        horizontalAlignments.push(item.horizontalAlignment.slice());
+        shiftEntries.push({
+          shiftKey: item.shiftKey,
+          shiftLabel: item.shiftLabel,
+          rowIndex: item.rowIndex,
+        });
+      }
     }
 
     var profile = getDriverProfileFromLoadedData(loaded, normalizedDriverId);
+    var cumulativeFromDate = cumulativeFromDayKey
+      ? formatDayKeyToDisplay(cumulativeFromDayKey)
+      : "";
 
     return JSON.stringify({
       success: true,
@@ -122,6 +188,11 @@ function checkLogin(driverId, password, companyName) {
       fontStyles: fontStyles,
       horizontalAlignments: horizontalAlignments,
       shiftEntries: shiftEntries,
+      selectedDayCount: selectedDayCount,
+      cumulativeCount: cumulativeCount,
+      cumulativeFromDate: cumulativeFromDate,
+      cumulativeToDate: formatDayKeyToDisplay(cumulativeToDayKey),
+      queryDateDisplay: formatDayKeyToDisplay(selectedDayKey),
     });
   } catch (error) {
     return JSON.stringify({ success: false, message: error.message });
@@ -139,11 +210,18 @@ function getEligiblePartners(companyName, driverId, password) {
   var eligiblePairsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
     CONFIG.ELIGIBLE_PAIRS_SHEET,
   );
-  var partnerIds = getEligiblePartnerIdsFromPairs(eligiblePairsSheet, companyName, driverId);
+  var partnerIds = getEligiblePartnerIdsFromPairs(
+    eligiblePairsSheet,
+    companyName,
+    driverId,
+  );
   var partners = [];
 
   for (var i = 0; i < partnerIds.length; i++) {
-    var profile = getDriverProfileFromLoadedData(auth.loadedData, partnerIds[i]);
+    var profile = getDriverProfileFromLoadedData(
+      auth.loadedData,
+      partnerIds[i],
+    );
     partners.push({
       driverId: partnerIds[i],
       driverName: profile.name || "",
@@ -154,7 +232,14 @@ function getEligiblePartners(companyName, driverId, password) {
   return JSON.stringify({ success: true, partners: partners });
 }
 
-function requestSwap(companyName, driverId, password, partnerDriverId, shiftKeys, note) {
+function requestSwap(
+  companyName,
+  driverId,
+  password,
+  partnerDriverId,
+  shiftKeys,
+  note,
+) {
   var auth = authenticateDriver(companyName, driverId, password);
   if (!auth.success) {
     return JSON.stringify(auth);
@@ -163,10 +248,16 @@ function requestSwap(companyName, driverId, password, partnerDriverId, shiftKeys
   var normalizedPartnerId = normalizeValue(partnerDriverId);
   var normalizedShiftKeys = normalizeShiftKeysInput(shiftKeys);
   if (!normalizedPartnerId) {
-    return JSON.stringify({ success: false, message: "يرجى اختيار السائق البديل." });
+    return JSON.stringify({
+      success: false,
+      message: "يرجى اختيار السائق البديل.",
+    });
   }
   if (!normalizedShiftKeys.length) {
-    return JSON.stringify({ success: false, message: "يرجى اختيار شيفت واحد على الأقل." });
+    return JSON.stringify({
+      success: false,
+      message: "يرجى اختيار شيفت واحد على الأقل.",
+    });
   }
   if (normalizedPartnerId === normalizeValue(driverId)) {
     return JSON.stringify({
@@ -182,7 +273,8 @@ function requestSwap(companyName, driverId, password, partnerDriverId, shiftKeys
   if (!isPairEligible(pairSheet, companyName, driverId, normalizedPartnerId)) {
     return JSON.stringify({
       success: false,
-      message: "هذا السائق غير مسموح له بالتبديل معك حسب إعدادات EligiblePairs.",
+      message:
+        "هذا السائق غير مسموح له بالتبديل معك حسب إعدادات EligiblePairs.",
     });
   }
 
@@ -283,7 +375,8 @@ function listDriverSwapRequests(companyName, driverId, password) {
   for (var i = 0; i < rows.length; i++) {
     var row = rows[i];
     var req = mapRequestRow(row);
-    if (normalizeValue(req.companyKey) !== normalizeValue(companyName)) continue;
+    if (normalizeValue(req.companyKey) !== normalizeValue(companyName))
+      continue;
     if (
       normalizeValue(req.requesterDriverId) !== currentDriverId &&
       normalizeValue(req.partnerDriverId) !== currentDriverId
@@ -379,7 +472,10 @@ function listPendingSwapRequestsForAdmin(companyName) {
     if (normalizedFilterCompany && reqCompany !== normalizedFilterCompany) {
       continue;
     }
-    if (!context.allCompanies && context.allowedCompanies.indexOf(reqCompany) === -1) {
+    if (
+      !context.allCompanies &&
+      context.allowedCompanies.indexOf(reqCompany) === -1
+    ) {
       continue;
     }
     pending.push(req);
@@ -428,10 +524,16 @@ function resolveSwapRequest(requestId, companyName, approve, note) {
   }
 
   if (!target) {
-    return JSON.stringify({ success: false, message: "طلب التبديل غير موجود." });
+    return JSON.stringify({
+      success: false,
+      message: "طلب التبديل غير موجود.",
+    });
   }
   if (normalizeValue(target.status) !== normalizeValue(CONFIG.STATUS_PENDING)) {
-    return JSON.stringify({ success: false, message: "تمت معالجة هذا الطلب مسبقًا." });
+    return JSON.stringify({
+      success: false,
+      message: "تمت معالجة هذا الطلب مسبقًا.",
+    });
   }
 
   var nextStatus = approve ? CONFIG.STATUS_APPROVED : CONFIG.STATUS_REJECTED;
@@ -459,7 +561,11 @@ function resolveSwapRequest(requestId, companyName, approve, note) {
 
     var updates = [];
     for (var j = 0; j < shiftKeys.length; j++) {
-      var shiftInfo = findShiftInfoByKey(companySheet, loaded.headers, shiftKeys[j]);
+      var shiftInfo = findShiftInfoByKey(
+        companySheet,
+        loaded.headers,
+        shiftKeys[j],
+      );
       if (!shiftInfo.found) {
         return JSON.stringify({
           success: false,
@@ -597,7 +703,10 @@ function loadCompanySheetData(sheet) {
   var columns = {
     driverIdCol: CONFIG.COL_DRIVER_ID,
     passwordCol: CONFIG.COL_PASSWORD,
-    driverNameCol: findColumnByHeader(headers, CONFIG.DRIVER_NAME_HEADER_CANDIDATES),
+    driverNameCol: findColumnByHeader(
+      headers,
+      CONFIG.DRIVER_NAME_HEADER_CANDIDATES,
+    ),
     phoneCol: findColumnByHeader(headers, CONFIG.PHONE_HEADER_CANDIDATES),
     shiftKeyCol: findColumnByHeader(headers, [CONFIG.SHIFT_KEY_HEADER]),
     dateCol: findColumnByHeader(headers, CONFIG.DATE_HEADER_CANDIDATES),
@@ -631,7 +740,10 @@ function filterDriverRows(loaded, driverId, password) {
     var row = loaded.rows[i];
     var rowDriverId = normalizeValue(row[loaded.columns.driverIdCol]);
     var rowPassword = normalizeValue(row[loaded.columns.passwordCol]);
-    if (rowDriverId === normalizeValue(driverId) && rowPassword === normalizeValue(password)) {
+    if (
+      rowDriverId === normalizeValue(driverId) &&
+      rowPassword === normalizeValue(password)
+    ) {
       var rowIndex = i + 2;
       var shiftKey = buildShiftKey(row, loaded.columns.shiftKeyCol, rowIndex);
       list.push({
@@ -675,7 +787,10 @@ function formatRowForDisplay(row, headers) {
       var totalMinutes = Math.round(cell * 24 * 60);
       var hours = Math.floor(totalMinutes / 60);
       var minutes = totalMinutes % 60;
-      row[j] = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
+      row[j] =
+        (hours < 10 ? "0" + hours : hours) +
+        ":" +
+        (minutes < 10 ? "0" + minutes : minutes);
       continue;
     }
     if (cell instanceof Date) {
@@ -686,11 +801,26 @@ function formatRowForDisplay(row, headers) {
         header.indexOf("موعد") !== -1 ||
         isTimeOnly
       ) {
-        row[j] = Utilities.formatDate(cell, Session.getScriptTimeZone(), "HH:mm");
-      } else if (header.indexOf("تاريخ") !== -1 || header.indexOf("التاريخ") !== -1) {
-        row[j] = Utilities.formatDate(cell, Session.getScriptTimeZone(), "dd/MM/yyyy");
+        row[j] = Utilities.formatDate(
+          cell,
+          Session.getScriptTimeZone(),
+          "HH:mm",
+        );
+      } else if (
+        header.indexOf("تاريخ") !== -1 ||
+        header.indexOf("التاريخ") !== -1
+      ) {
+        row[j] = Utilities.formatDate(
+          cell,
+          Session.getScriptTimeZone(),
+          "dd/MM/yyyy",
+        );
       } else {
-        row[j] = Utilities.formatDate(cell, Session.getScriptTimeZone(), "yyyy/MM/dd HH:mm");
+        row[j] = Utilities.formatDate(
+          cell,
+          Session.getScriptTimeZone(),
+          "yyyy/MM/dd HH:mm",
+        );
       }
     }
   }
@@ -805,8 +935,14 @@ function getDriverProfileFromLoadedData(loaded, driverId) {
         found: true,
         driverId: id,
         password: normalizeValue(row[loaded.columns.passwordCol]),
-        name: loaded.columns.driverNameCol >= 0 ? String(row[loaded.columns.driverNameCol] || "") : "",
-        phone: loaded.columns.phoneCol >= 0 ? String(row[loaded.columns.phoneCol] || "") : "",
+        name:
+          loaded.columns.driverNameCol >= 0
+            ? String(row[loaded.columns.driverNameCol] || "")
+            : "",
+        phone:
+          loaded.columns.phoneCol >= 0
+            ? String(row[loaded.columns.phoneCol] || "")
+            : "",
       };
     }
   }
@@ -884,7 +1020,9 @@ function buildAdminAccessContext() {
     email: email,
     allCompanies: allCompanies,
     allowedCompanies: allowedCompanies,
-    companyOptions: allCompanies ? configuredCompanies.slice() : allowedCompanies.slice(),
+    companyOptions: allCompanies
+      ? configuredCompanies.slice()
+      : allowedCompanies.slice(),
   };
 }
 
@@ -968,12 +1106,15 @@ function parseTruthy(value) {
 
 function findColumnByHeader(headers, candidates) {
   var normalizedCandidates = candidates.map(function (candidate) {
-    return normalizeValue(candidate).toLowerCase();
+    return normalizeHeaderToken(candidate);
   });
   for (var i = 0; i < headers.length; i++) {
-    var header = normalizeValue(headers[i]).toLowerCase();
+    var header = normalizeHeaderToken(headers[i]);
     for (var j = 0; j < normalizedCandidates.length; j++) {
-      if (header === normalizedCandidates[j] || header.indexOf(normalizedCandidates[j]) !== -1) {
+      if (
+        header === normalizedCandidates[j] ||
+        header.indexOf(normalizedCandidates[j]) !== -1
+      ) {
         return i;
       }
     }
@@ -981,44 +1122,205 @@ function findColumnByHeader(headers, candidates) {
   return -1;
 }
 
+function normalizeHeaderToken(value) {
+  var v = normalizeValue(value).toLowerCase();
+  // توحيد أشهر اختلافات الكتابة العربية لتفادي فشل المطابقة
+  v = v.replace(/[أإآ]/g, "ا");
+  v = v.replace(/ة/g, "ه");
+  v = v.replace(/ى/g, "ي");
+  return v;
+}
+
 function formatCellLite(value) {
   if (value instanceof Date) {
-    return Utilities.formatDate(value, Session.getScriptTimeZone(), "dd/MM HH:mm");
+    return Utilities.formatDate(
+      value,
+      Session.getScriptTimeZone(),
+      "dd/MM HH:mm",
+    );
   }
   if (typeof value === "number" && value < 1 && value >= 0) {
     var totalMinutes = Math.round(value * 24 * 60);
     var hours = Math.floor(totalMinutes / 60);
     var minutes = totalMinutes % 60;
-    return (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
+    return (
+      (hours < 10 ? "0" + hours : hours) +
+      ":" +
+      (minutes < 10 ? "0" + minutes : minutes)
+    );
   }
   return normalizeValue(value);
 }
 
+function parseQueryDateToDayKey(queryDate) {
+  var v = normalizeValue(queryDate);
+  if (!v) return "";
+  var m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return "";
+  return (
+    m[1] +
+    "-" +
+    (m[2].length === 1 ? "0" + m[2] : m[2]) +
+    "-" +
+    (m[3].length === 1 ? "0" + m[3] : m[3])
+  );
+}
+
+function formatDayKeyToDisplay(dayKey) {
+  if (!dayKey) return "";
+  var parts = dayKey.split("-");
+  if (parts.length !== 3) return "";
+  return parts[2] + "/" + parts[1] + "/" + parts[0];
+}
+
+function getEffectiveDayKey(row, columns, timeZone) {
+  if (columns.dateCol < 0) return "";
+  var baseDayKey = extractDateDayKey(row[columns.dateCol], timeZone);
+  if (!baseDayKey) return "";
+
+  // قاعدة 24-hour: شيفت انصراف يبدأ من 00:00 حتى 10:00 يُنسب لليوم السابق
+  var tripText = "";
+  if (columns.tripCol >= 0) {
+    tripText = normalizeValue(row[columns.tripCol]).toLowerCase();
+  }
+  var isDropShift =
+    tripText.indexOf("انصراف") !== -1 ||
+    tripText.indexOf("checkout") !== -1 ||
+    tripText.indexOf("drop") !== -1;
+  if (!isDropShift) return baseDayKey;
+
+  var startMinutes = extractStartMinutes(row, columns);
+  if (startMinutes >= 0 && startMinutes <= 10 * 60) {
+    return shiftDayKey(baseDayKey, -1);
+  }
+  return baseDayKey;
+}
+
+function extractStartMinutes(row, columns) {
+  if (columns.timeCol >= 0) {
+    var parsed = parseTimeToMinutes(row[columns.timeCol]);
+    if (parsed >= 0) return parsed;
+  }
+  var dateCell = row[columns.dateCol];
+  if (dateCell instanceof Date) {
+    return dateCell.getHours() * 60 + dateCell.getMinutes();
+  }
+  return -1;
+}
+
 // تحويل أي قيمة وقت إلى دقائق من منتصف الليل (0-1440)
 function parseTimeToMinutes(cell) {
-  if (cell === null || cell === undefined || cell === "") return 0;
+  if (cell === null || cell === undefined || cell === "") return -1;
   if (cell instanceof Date) return cell.getHours() * 60 + cell.getMinutes();
   if (typeof cell === "number") {
     if (cell < 1 && cell >= 0) return Math.round(cell * 24 * 60);
-    return 0;
+    return -1;
   }
   if (typeof cell === "string") {
     var trimmed = String(cell).trim();
-    if (!trimmed) return 0;
-    var match = trimmed.match(/^(\d{1,2}):(\d{1,2})/);
-    if (match) return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
-    var parsed = new Date(trimmed);
-    if (!isNaN(parsed.getTime())) return parsed.getHours() * 60 + parsed.getMinutes();
+    if (!trimmed) return -1;
+
+    // يدعم: 00:00, 7:30, 07:30:00, 12:00 AM, 12:00 ص, 1:15 pm
+    var match = trimmed.match(
+      /^(\d{1,2}):(\d{1,2})(?::\d{1,2})?\s*([AaPp][Mm]|ص|م)?$/,
+    );
+    if (match) {
+      var hours = parseInt(match[1], 10);
+      var minutes = parseInt(match[2], 10);
+      var meridiem = (match[3] || "").toLowerCase();
+      if (minutes < 0 || minutes > 59) return -1;
+
+      if (meridiem === "am" || meridiem === "ص") {
+        if (hours === 12) hours = 0;
+      } else if (meridiem === "pm" || meridiem === "م") {
+        if (hours < 12) hours += 12;
+      }
+
+      if (hours < 0 || hours > 24) return -1;
+      if (hours === 24 && minutes > 0) return -1;
+      if (hours === 24) return 24 * 60;
+      return hours * 60 + minutes;
+    }
   }
-  return 0;
+  return -1;
+}
+
+function extractDateDayKey(cell, timeZone) {
+  if (cell === null || cell === undefined || cell === "") return "";
+  if (cell instanceof Date) {
+    if (cell.getFullYear() <= 1900) return "";
+    return Utilities.formatDate(
+      cell,
+      timeZone || Session.getScriptTimeZone(),
+      "yyyy-MM-dd",
+    );
+  }
+  if (typeof cell === "number") {
+    if (cell < 1) return "";
+    // Excel serial date -> milliseconds
+    var parsedDate = new Date((cell - 25569) * 86400000);
+    return Utilities.formatDate(
+      parsedDate,
+      timeZone || Session.getScriptTimeZone(),
+      "yyyy-MM-dd",
+    );
+  }
+  if (typeof cell === "string") {
+    var trimmed = String(cell).trim();
+    if (!trimmed) return "";
+    var ddmmyyyy = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (ddmmyyyy) {
+      return (
+        ddmmyyyy[3] +
+        "-" +
+        String(parseInt(ddmmyyyy[2], 10)).padStart(2, "0") +
+        "-" +
+        String(parseInt(ddmmyyyy[1], 10)).padStart(2, "0")
+      );
+    }
+    var yyyymmdd = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (yyyymmdd) {
+      return (
+        yyyymmdd[1] +
+        "-" +
+        String(parseInt(yyyymmdd[2], 10)).padStart(2, "0") +
+        "-" +
+        String(parseInt(yyyymmdd[3], 10)).padStart(2, "0")
+      );
+    }
+  }
+  return "";
+}
+
+function shiftDayKey(dayKey, dayDelta) {
+  var m = normalizeValue(dayKey).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return "";
+  var date = new Date(
+    parseInt(m[1], 10),
+    parseInt(m[2], 10) - 1,
+    parseInt(m[3], 10),
+  );
+  date.setDate(date.getDate() + (dayDelta || 0));
+  return (
+    date.getFullYear() +
+    "-" +
+    String(date.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(date.getDate()).padStart(2, "0")
+  );
 }
 
 // تحويل أي قيمة تاريخ إلى milliseconds لبداية اليوم
 function parseDateToMs(cell) {
-  if (cell === null || cell === undefined || cell === "") return Number.MAX_VALUE;
+  if (cell === null || cell === undefined || cell === "")
+    return Number.MAX_VALUE;
   if (cell instanceof Date) {
     if (cell.getFullYear() <= 1900) return Number.MAX_VALUE;
-    return new Date(cell.getFullYear(), cell.getMonth(), cell.getDate()).getTime();
+    return new Date(
+      cell.getFullYear(),
+      cell.getMonth(),
+      cell.getDate(),
+    ).getTime();
   }
   if (typeof cell === "number") {
     if (cell < 1 && cell >= 0) return Number.MAX_VALUE;
@@ -1051,14 +1353,6 @@ function parseDateToMs(cell) {
         parseInt(yyyymmdd[3], 10),
       ).getTime();
     }
-    var parsed = new Date(trimmed);
-    if (!isNaN(parsed.getTime())) {
-      return new Date(
-        parsed.getFullYear(),
-        parsed.getMonth(),
-        parsed.getDate(),
-      ).getTime();
-    }
   }
   return Number.MAX_VALUE;
 }
@@ -1067,6 +1361,7 @@ function getSortKeyMs(row, dateCol, timeCol) {
   var dateMs = parseDateToMs(row[dateCol]);
   if (dateMs === Number.MAX_VALUE) return Number.MAX_VALUE;
   var timeMins = timeCol >= 0 ? parseTimeToMinutes(row[timeCol]) : 0;
+  if (timeMins < 0) timeMins = 0;
   return dateMs + timeMins * 60000;
 }
 

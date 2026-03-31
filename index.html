@@ -210,6 +210,33 @@
         margin-bottom: 12px;
       }
 
+      .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin: 12px 0 14px;
+      }
+
+      .stat-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #f8fbff;
+        padding: 10px 12px;
+      }
+
+      .stat-card-label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 5px;
+      }
+
+      .stat-card-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
       .results-title {
         margin: 0;
         font-size: 19px;
@@ -460,6 +487,10 @@
         .swap-shifts-box {
           max-height: 220px;
         }
+
+        .stats-cards {
+          grid-template-columns: 1fr;
+        }
       }
 
       @media (max-width: 700px) {
@@ -500,6 +531,11 @@
         </div>
 
         <div class="field">
+          <label for="queryDate">تاريخ الاستعلام</label>
+          <input type="date" id="queryDate" />
+        </div>
+
+        <div class="field">
           <label for="driverId">رقم السائق</label>
           <input type="text" id="driverId" placeholder="مثال: 1123327546" autocomplete="username" />
         </div>
@@ -526,6 +562,21 @@
 
         <div class="actions-bar">
           <button class="btn" id="downloadImgBtn">تحميل الجدول PNG</button>
+        </div>
+
+        <div class="stats-cards" id="statsCards" style="display: none">
+          <div class="stat-card">
+            <span class="stat-card-label">شيفتات اليوم المختار</span>
+            <span class="stat-card-value" id="selectedDayCountCard">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-label">الإجمالي التراكمي حتى التاريخ</span>
+            <span class="stat-card-value" id="cumulativeCountCard">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-label">النطاق التراكمي</span>
+            <span class="stat-card-value" id="cumulativeRangeCard">-</span>
+          </div>
         </div>
 
         <div class="table-container" id="tableContainer"></div>
@@ -606,6 +657,7 @@
       var currentCompanyName = "";
       var loggedDriverId = "";
       var loggedPassword = "";
+      var currentQueryDate = "";
       var currentShiftEntries = [];
       var partnersMap = {};
       var adminAccess = {
@@ -617,8 +669,18 @@
       };
 
       document.addEventListener("DOMContentLoaded", function () {
+        setDefaultQueryDate();
         loadCompanies();
       });
+
+      function setDefaultQueryDate() {
+        var dateInput = document.getElementById("queryDate");
+        if (!dateInput || dateInput.value) return;
+        var now = new Date();
+        var month = String(now.getMonth() + 1).padStart(2, "0");
+        var day = String(now.getDate()).padStart(2, "0");
+        dateInput.value = now.getFullYear() + "-" + month + "-" + day;
+      }
 
       function safeParseJson(response) {
         if (typeof response === "string") return JSON.parse(response);
@@ -647,6 +709,27 @@
         var el = document.getElementById("adminStatus");
         el.textContent = text || "";
         el.className = type ? type : "";
+      }
+
+      function resetStatsCards() {
+        document.getElementById("statsCards").style.display = "none";
+        document.getElementById("selectedDayCountCard").textContent = "0";
+        document.getElementById("cumulativeCountCard").textContent = "0";
+        document.getElementById("cumulativeRangeCard").textContent = "-";
+      }
+
+      function renderStatsCards(parsed) {
+        document.getElementById("selectedDayCountCard").textContent = String(
+          parsed.selectedDayCount || 0,
+        );
+        document.getElementById("cumulativeCountCard").textContent = String(
+          parsed.cumulativeCount || 0,
+        );
+        var fromDate = parsed.cumulativeFromDate || parsed.queryDateDisplay || "-";
+        var toDate = parsed.cumulativeToDate || parsed.queryDateDisplay || "-";
+        document.getElementById("cumulativeRangeCard").textContent =
+          parsed.cumulativeCount > 0 ? fromDate + " - " + toDate : "-";
+        document.getElementById("statsCards").style.display = "grid";
       }
 
       function loadCompanies() {
@@ -684,6 +767,7 @@
         var driverId = document.getElementById("driverId").value.trim();
         var password = document.getElementById("password").value.trim();
         var companyName = document.getElementById("companySelect").value.trim();
+        var queryDate = document.getElementById("queryDate").value.trim();
         var spinner = document.getElementById("spinner");
         var loginBtn = document.getElementById("loginBtn");
         var tableContainer = document.getElementById("tableContainer");
@@ -693,6 +777,7 @@
         setSwapStatus("", "");
         setAdminStatus("", "");
         hideAdminPanel();
+        resetStatsCards();
         resultsCard.style.display = "none";
         tableContainer.innerHTML = "";
         document.getElementById("swapRequestsContainer").innerHTML = "";
@@ -704,6 +789,10 @@
         }
         if (!driverId || !password) {
           showResultMessage("❌ يرجى إدخال رقم السائق وكلمة المرور.", "error");
+          return;
+        }
+        if (!queryDate) {
+          showResultMessage("❌ يرجى اختيار تاريخ الاستعلام.", "error");
           return;
         }
 
@@ -725,6 +814,7 @@
             currentCompanyName = parsed.companyName || companyName;
             loggedDriverId = parsed.driverId || driverId;
             loggedPassword = password;
+            currentQueryDate = queryDate;
             currentShiftEntries = Array.isArray(parsed.shiftEntries) ? parsed.shiftEntries : [];
 
             document.getElementById("selectedCompanyBadge").textContent = "الشركة: " + currentCompanyName;
@@ -733,6 +823,7 @@
               "السائق: " + (parsed.driverName || loggedDriverId);
 
             renderTable(parsed);
+            renderStatsCards(parsed);
             populateShiftSelect(currentShiftEntries);
             resultsCard.style.display = "block";
             document.getElementById("downloadImgBtn").style.display = "inline-flex";
@@ -742,7 +833,9 @@
                 parsed.sheetName +
                 " (" +
                 parsed.fileName +
-                ").",
+                ") بتاريخ " +
+                (parsed.queryDateDisplay || queryDate) +
+                ".",
               "success",
             );
 
@@ -756,7 +849,7 @@
             loginBtn.disabled = false;
             showResultMessage("❌ حدث خطأ: " + error.message, "error");
           })
-          .checkLogin(driverId, password, companyName);
+          .checkLogin(driverId, password, companyName, queryDate);
       }
 
       function bindDownloadButton() {
